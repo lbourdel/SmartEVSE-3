@@ -3077,8 +3077,6 @@ void StartwebServer(void) {
                 Irms[1] = request->getParam("L2")->value().toInt();
                 Irms[2] = request->getParam("L3")->value().toInt();
 
-                timeout = 10;
-
                 int batteryPerPhase = getBatteryCurrent() / 3;
                 Isum = 0; 
                 for (int x = 0; x < 3; x++) {  
@@ -3089,6 +3087,9 @@ void StartwebServer(void) {
                     Isum = Isum + Irms[x];
                 }
                 doc["TOTAL"] = Isum;
+
+                timeout = 10;
+
                 UpdateCurrentData();
             }
         }
