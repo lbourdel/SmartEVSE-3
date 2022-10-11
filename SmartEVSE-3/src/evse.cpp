@@ -347,11 +347,13 @@ void BlinkLed(void * parameter) {
                 if (Mode == MODE_SOLAR) {                                       // Orange
                     RedPwm = LedPwm;
                     GreenPwm = LedPwm * 2 / 3;
-                } else {                                                        // Green
+                    BluePwm = 0;
+                } else {                                                        // Blue
+                    BluePwm = LedPwm;
                     RedPwm = 0;
-                    GreenPwm = LedPwm;
+                    GreenPwm = 0;
                 }    
-                BluePwm = 0;
+                
             }
 
         } else if (Access_bit == 0) {                                            // No Access, LEDs off
@@ -377,11 +379,12 @@ void BlinkLed(void * parameter) {
             if (Mode == MODE_SOLAR) {                                           // Orange/Yellow for Solar mode
                 RedPwm = LedPwm;
                 GreenPwm = LedPwm * 2 / 3;
+                BluePwm = 0;
             } else {
-                RedPwm = 0;                                                     // Green for Normal/Smart mode
-                GreenPwm = LedPwm;
+                BluePwm = LedPwm;                                               // Blue for Normal/Smart mode
+                RedPwm = 0; 
+                GreenPwm = 0;
             }
-            BluePwm = 0;            
 
         }
         ledcWrite(RED_CHANNEL, RedPwm);
