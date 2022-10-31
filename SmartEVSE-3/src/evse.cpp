@@ -2012,8 +2012,16 @@ void GetP1(void * parameter) {
             http.end();
         }
 
-        // Pause the task for 1 Sec
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        // Pause the task for 1 or 5 Sec
+        boolean evConnected = pilot != PILOT_12V;
+        if (evConnected)
+        {
+            vTaskDelay(1000  / portTICK_PERIOD_MS);
+        }
+        else
+        {
+            vTaskDelay(5000 / portTICK_PERIOD_MS);
+        }
     }
 }
 
