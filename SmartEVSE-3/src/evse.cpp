@@ -2020,7 +2020,7 @@ void GetP1(void * parameter) {
         }
         else
         {
-            vTaskDelay(5000 / portTICK_PERIOD_MS);
+            vTaskDelay(3000 / portTICK_PERIOD_MS);
         }
     }
 }
