@@ -2053,13 +2053,11 @@ void GetP1(void * parameter) {
                     timeout = 10;
 
                     UpdateCurrentData();
-                    //_Serialprintf("P1: %u, %u, %u\n", i1, i2, i3);
-                    //_Serialprintf("Task GetP1 free ram: %u\n", uxTaskGetStackHighWaterMark( NULL ));
                 }
             }
             else
             {
-                _Serialprintf("Error, communication error!\n");
+                _LOG_W("Error, communication error!\n");
             }
 
             http.end();
