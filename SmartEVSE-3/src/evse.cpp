@@ -1114,6 +1114,7 @@ void processAllNodeStates(uint8_t NodeNr) {
 
 }
 
+
 /**
  * Check minimum and maximum of a value and set the variable
  *
@@ -1986,6 +1987,7 @@ uint8_t PollEVNode = NR_EVSES;
     } //while(1) loop
 
 }
+
 
 // task 1000msTimer
 void Timer1S(void * parameter) {
