@@ -81,7 +81,6 @@ struct ModBus MB;          // Used by SmartEVSE fuctions
 
 const char StrStateName[11][10] = {"A", "B", "C", "D", "COMM_B", "COMM_B_OK", "COMM_C", "COMM_C_OK", "Activate", "B1", "C1"};
 const char StrStateNameWeb[11][17] = {"Ready to Charge", "Connected to EV", "Charging", "D", "Request State B", "State B OK", "Request State C", "State C OK", "Activate", "Charging Stopped", "Stop Charging" };
-const char StrErrorNameWeb[9][20] = {"None", "No Power Available", "Communication Error", "Temperature High", "Unused", "RCM Tripped", "Waiting for Solar", "Test IO", "Flash Error"};
 
 // Global data
 
@@ -1394,6 +1393,17 @@ uint16_t getItemValue(uint8_t nav) {
 }
 
 
+void printStatus(void)
+{
+        char Str[140];
+        snprintf(Str, sizeof(Str) , "#STATE: %s Error: %u StartCurrent: -%i ChargeDelay: %u SolarStopTimer: %u NoCurrent: %u Imeasured: %.1f A IsetBalanced: %.1f A\n", getStateName(State), ErrorFlags, StartCurrent,
+                                                                        ChargeDelay, SolarStopTimer,  NoCurrent,
+                                                                        (float)Imeasured/10,
+                                                                        (float)IsetBalanced/10);
+        _LOG_I("%s",Str+1);
+        _LOG_I("L1: %.1f A L2: %.1f A L3: %.1f A Isum: %.1f A\n", (float)Irms[0]/10, (float)Irms[1]/10, (float)Irms[2]/10, (float)Isum/10);
+}
+
 /**
  * Update current data after received current measurement
  */
@@ -1434,15 +1444,7 @@ void UpdateCurrentData(void) {
             // Set current for Master EVSE in Smart Mode
             SetCurrent(Balanced[0]);
         }
-
-        char Str[140];
-        snprintf(Str, sizeof(Str) , "#STATE: %s Error: %u StartCurrent: -%i ChargeDelay: %u SolarStopTimer: %u NoCurrent: %u Imeasured: %.1f A IsetBalanced: %.1f A\n", getStateName(State), ErrorFlags, StartCurrent,
-                                                                        ChargeDelay, SolarStopTimer,  NoCurrent,
-                                                                        (float)Imeasured/10,
-                                                                        (float)IsetBalanced/10);
-        _LOG_I("%s",Str+1);
-        _LOG_I("L1: %.1f A L2: %.1f A L3: %.1f A Isum: %.1f A\n", (float)Irms[0]/10, (float)Irms[1]/10, (float)Irms[2]/10, (float)Isum/10);
-
+        printStatus();  //for debug purposes
     } else Imeasured = 0; // In case Sensorbox is connected in Normal mode. Clear measurement.
 }
 
@@ -2071,7 +2073,9 @@ void Timer1S(void * parameter) {
             if (BalancedState[x] == STATE_C) Node[x].Timer++;
         }
 
-        if ( (timeout == 0) && !(ErrorFlags & CT_NOCOMM)) { // timeout if current measurement takes > 10 secs
+        if ( (timeout == 0) && !(ErrorFlags & CT_NOCOMM) && (Mode != MODE_NORMAL)) { // timeout if current measurement takes > 10 secs
+            // In Normal mode do not timeout; there might be MainsMeter/EVMeter configured that can be retrieved through the API,
+            // but in Normal mode we just want to charge ChargeCurrent, irrespective of communication problems.
             ErrorFlags |= CT_NOCOMM;
             if (State == STATE_C) setState(STATE_C1);                       // tell EV to stop charging
             else setState(STATE_B1);                                        // when we are not charging switch to State B1
@@ -2111,7 +2115,10 @@ void Timer1S(void * parameter) {
             Broadcast = 1;                                                  // repeat every two seconds
         }
 
-          
+        // in Normal mode UpdateCurrentData is never called, so we have to show debug info here...
+        if (Mode == 0)
+            printStatus();  //for debug purposes
+
 
         // this will run every 5 seconds
         // if (Timer5sec++ >= 5) {
@@ -3518,7 +3525,7 @@ void setup() {
         preferences.end(); 
 
         // overwrite APhostname if serialnr is programmed
-        //APhostname = "SmartEVSE-" + String( serialnr & 0xffff, 10);           // SmartEVSE access point Name = SmartEVSE-xxxxx
+        APhostname = "SmartEVSE-" + String( serialnr & 0xffff, 10);           // SmartEVSE access point Name = SmartEVSE-xxxxx
         _LOG_A("hwversion %04x serialnr:%u \n",hwversion, serialnr);
         //_LOG_A(ec_public);
 
@@ -3590,8 +3597,8 @@ void setup() {
 
 void loop() {
 
-    //time_t current_time;
     delay(1000);
+    //time_t current_time;
     //current_time = time(NULL);
     /*
     LocalTimeSet = getLocalTime(&timeinfo, 1000U);
