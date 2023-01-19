@@ -7,7 +7,6 @@
 #include <SPIFFS.h>
 
 #include <WiFi.h>
-#include <HTTPClient.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <ESPAsync_WiFiManager.h>
@@ -1116,20 +1115,6 @@ void processAllNodeStates(uint8_t NodeNr) {
 
 }
 
-// Get value from P1 telegram
-String getP1Value(String telegram, String p1Id, int length)
-{
-    int index = telegram.indexOf(p1Id,0);
-    if (index > 0)
-    {
-      int start = index + p1Id.length() + 1;
-      String value = telegram.substring(start, start + length);
-      value.replace(".","");
-      return value;
-    }
-    return "";
-}
-
 /**
  * Check minimum and maximum of a value and set the variable
  *
@@ -1999,83 +1984,6 @@ uint8_t PollEVNode = NR_EVSES;
     } //while(1) loop
 
 }
-
-// task 1000msTimer
-void GetP1(void * parameter) {
-
-    HTTPClient http;
-
-    while(1) { // infinite loop
-
-        if (WiFi.isConnected() && WiFi.status() == WL_CONNECTED)
-        {
-            http.begin("http://10.11.12.53/api/v1/telegram");
-            http.setTimeout(2000);
-            http.setConnectTimeout(2000);
-
-            int httpResponseCode = http.GET();
-            
-            if (httpResponseCode==200) {
-                String payload = http.getString();
-
-                int v1 = getP1Value(payload, "1-0:32.7.0", 5).toInt();
-                int v2 = getP1Value(payload, "1-0:52.7.0", 5).toInt();
-                int v3 = getP1Value(payload, "1-0:72.7.0", 5).toInt();
-
-                int iw1 = getP1Value(payload, "1-0:21.7.0", 6).toInt();
-                int iw2 = getP1Value(payload, "1-0:41.7.0", 6).toInt();
-                int iw3 = getP1Value(payload, "1-0:61.7.0", 6).toInt();
-
-                int ew1 = getP1Value(payload, "1-0:22.7.0", 6).toInt();
-                int ew2 = getP1Value(payload, "1-0:42.7.0", 6).toInt();
-                int ew3 = getP1Value(payload, "1-0:62.7.0", 6).toInt();
-
-                if (v1 > 0 && v2 > 0 && v3 > 0)
-                {
-                    int i1 = 100.0 * (((float)iw1-(float)ew1)/(float)v1);
-                    int i2 = 100.0 * (((float)iw2-(float)ew2)/(float)v2);
-                    int i3 = 100.0 * (((float)iw3-(float)ew3)/(float)v3);
-
-                    phasesLastUpdate = time(NULL);
-
-                    Irms[0] = i1;
-                    Irms[1] = i2;
-                    Irms[2] = i3;
-
-                    int batteryPerPhase = getBatteryCurrent() / 3;
-                    Isum = 0; 
-                    for (int x = 0; x < 3; x++) {  
-                        IrmsOriginal[x] = Irms[x];
-                        Irms[x] -= batteryPerPhase;           
-                        Isum = Isum + Irms[x];
-                    }
-
-                    timeout = 10;
-
-                    UpdateCurrentData();
-                }
-            }
-            else
-            {
-                _LOG_W("Error, communication error!\n");
-            }
-
-            http.end();
-        }
-
-        // Pause the task for 1 or 5 Sec
-        boolean evConnected = pilot != PILOT_12V;
-        if (evConnected)
-        {
-            vTaskDelay(1000  / portTICK_PERIOD_MS);
-        }
-        else
-        {
-            vTaskDelay(3000 / portTICK_PERIOD_MS);
-        }
-    }
-}
-
 
 // task 1000msTimer
 void Timer1S(void * parameter) {
@@ -3651,17 +3559,6 @@ void setup() {
     xTaskCreate(
         Timer1S,        // Function that should be called
         "Timer1S",      // Name of the task (for debugging)
-        4096,           // Stack size (bytes)                              
-        NULL,           // Parameter to pass
-        1,              // Task priority
-        NULL            // Task handle
-    );
-
-    
-    // Create Task Third Timer (1000ms)
-    xTaskCreate(
-        GetP1,        // Function that should be called
-        "GetP1",      // Name of the task (for debugging)
         4096,           // Stack size (bytes)                              
         NULL,           // Parameter to pass
         1,              // Task priority
