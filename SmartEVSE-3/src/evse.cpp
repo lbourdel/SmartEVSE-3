@@ -7,6 +7,7 @@
 #include <SPIFFS.h>
 
 #include <WiFi.h>
+#include <PubSubClient.h> // LBR
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <ESPAsync_WiFiManager.h>
@@ -63,8 +64,8 @@ String APhostname = "SmartEVSE-" + String( MacId() & 0xffff, 10);           // S
 ESPAsync_WiFiManager ESPAsync_wifiManager(&webServer, &dnsServer, APhostname.c_str());
 
 // SSID and PW for your Router
-String Router_SSID;
-String Router_Pass;
+// LBR not used String Router_SSID;
+// LBR not used String Router_Pass;
 
 // Create a ModbusRTU server and client instance on Serial1 
 ModbusServerRTU MBserver(Serial1, 2000, PIN_RS485_DIR);     // TCP timeout set to 2000 ms
@@ -205,9 +206,10 @@ uint8_t ResetKwh = 2;                                                       // i
                                                                             // cleared when charging, reset to 1 when disconnected (state A)
 uint8_t ActivationMode = 0, ActivationTimer = 0;
 volatile uint16_t adcsample = 0;
+// LBR mesure tension Control Pilot pour determiner Etat
 volatile uint16_t ADCsamples[25];                                           // declared volatile, as they are used in a ISR
 volatile uint8_t sampleidx = 0;
-volatile int adcchannel = ADC1_CHANNEL_3;
+// LBR not used volatile int adcchannel = ADC1_CHANNEL_3; // LBR GPIO39 CP-IN
 char str[20];
 bool LocalTimeSet = false;
 
@@ -215,6 +217,8 @@ int phasesLastUpdate = 0;
 int32_t IrmsOriginal[3]={0, 0, 0};   
 int homeBatteryCurrent = 0;
 int homeBatteryLastUpdate = 0; // Time in milliseconds
+
+uint16_t Papp_Linky=0;
 
 struct EMstruct EMConfig[EM_CUSTOM + 1] = {
     /* DESC,      ENDIANNESS,      FCT, DATATYPE,            U_REG,DIV, I_REG,DIV, P_REG,DIV, E_REG_IMP,DIV, E_REG_EXP, DIV */
@@ -292,7 +296,9 @@ void IRAM_ATTR onCPpulse() {
 void IRAM_ATTR onTimerA() {
 
   RTC_ENTER_CRITICAL();
-  adcsample = local_adc1_read(adcchannel);
+// LBR var not needed  adcsample = local_adc1_read(adcchannel);
+// LBR Voltage measurement for state charge
+  adcsample = local_adc1_read(ADC1_CHANNEL_3);
   RTC_EXIT_CRITICAL();
 
   ADCsamples[sampleidx++] = adcsample;
@@ -352,13 +358,11 @@ void BlinkLed(void * parameter) {
                 if (Mode == MODE_SOLAR) {                                       // Orange
                     RedPwm = LedPwm;
                     GreenPwm = LedPwm * 2 / 3;
-                    BluePwm = 0;
-                } else {                                                        // Blue
-                    BluePwm = LedPwm;
+                } else {                                                        // Green
                     RedPwm = 0;
-                    GreenPwm = 0;
+                    GreenPwm = LedPwm;
                 }    
-                
+                BluePwm = 0;
             }
 
         } else if (Access_bit == 0) {                                            // No Access, LEDs off
@@ -384,12 +388,11 @@ void BlinkLed(void * parameter) {
             if (Mode == MODE_SOLAR) {                                           // Orange/Yellow for Solar mode
                 RedPwm = LedPwm;
                 GreenPwm = LedPwm * 2 / 3;
-                BluePwm = 0;
             } else {
-                BluePwm = LedPwm;                                               // Blue for Normal/Smart mode
-                RedPwm = 0; 
-                GreenPwm = 0;
+                RedPwm = 0;                                                     // Green for Normal/Smart mode
+                GreenPwm = LedPwm;
             }
+            BluePwm = 0;            
 
         }
         ledcWrite(RED_CHANNEL, RedPwm);
@@ -427,7 +430,7 @@ signed char TemperatureSensor() {
 
     RTC_ENTER_CRITICAL();
     // Sample Temperature Sensor
-    sample = local_adc1_read(ADC1_CHANNEL_0);
+    sample = local_adc1_read(ADC1_CHANNEL_0); // LBR GPIO36 TEMP
     RTC_EXIT_CRITICAL();
 
     // voltage range is from 0-2200mV 
@@ -447,27 +450,34 @@ signed char TemperatureSensor() {
 void ProximityPin() {
     uint32_t sample, voltage;
 
-    RTC_ENTER_CRITICAL();
-    // Sample Proximity Pilot (PP)
-    sample = local_adc1_read(ADC1_CHANNEL_6);
-    RTC_EXIT_CRITICAL();
-
-    voltage = esp_adc_cal_raw_to_voltage(sample, adc_chars_PP);
-
     if (!Config) {                                                          // Configuration (0:Socket / 1:Fixed Cable)
+        RTC_ENTER_CRITICAL();
+        // Sample Proximity Pilot (PP)
+        sample = local_adc1_read(ADC1_CHANNEL_6); // LBR GPIO34 PP IN
+        RTC_EXIT_CRITICAL();
+
+        voltage = esp_adc_cal_raw_to_voltage(sample, adc_chars_PP);
+
+// LBR adc only when socket exists if (!Config) {                                                          // Configuration (0:Socket / 1:Fixed Cable)
         //socket
         _LOG_A("PP pin: %u (%u mV)\n", sample, voltage);
+        MaxCapacity = 13;                                                       // No resistor, Max cable current = 13A
+        if ((voltage > 1200) && (voltage < 1400)) MaxCapacity = 16;             // Max cable current = 16A	680R -> should be around 1.3V
+        if ((voltage > 500) && (voltage < 700)) MaxCapacity = 32;               // Max cable current = 32A	220R -> should be around 0.6V
+        if ((voltage > 200) && (voltage < 400)) MaxCapacity = 63;               // Max cable current = 63A	100R -> should be around 0.3V
+
     } else {
         //fixed cable
-        _LOG_A("PP pin: %u (%u mV) (warning: fixed cable configured so PP probably disconnected, making this reading void)\n", sample, voltage);
+        // _LOG_A("PP pin: %u (%u mV) (warning: fixed cable configured so PP probably disconnected, making this reading void)\n", sample, voltage);
+        MaxCapacity = MaxCurrent;                                   // Override with MaxCurrent when Fixed Cable is used.
     }
 
-    MaxCapacity = 13;                                                       // No resistor, Max cable current = 13A
-    if ((voltage > 1200) && (voltage < 1400)) MaxCapacity = 16;             // Max cable current = 16A	680R -> should be around 1.3V
-    if ((voltage > 500) && (voltage < 700)) MaxCapacity = 32;               // Max cable current = 32A	220R -> should be around 0.6V
-    if ((voltage > 200) && (voltage < 400)) MaxCapacity = 63;               // Max cable current = 63A	100R -> should be around 0.3V
+    // MaxCapacity = 13;                                                       // No resistor, Max cable current = 13A
+    // if ((voltage > 1200) && (voltage < 1400)) MaxCapacity = 16;             // Max cable current = 16A	680R -> should be around 1.3V
+    // if ((voltage > 500) && (voltage < 700)) MaxCapacity = 32;               // Max cable current = 32A	220R -> should be around 0.6V
+    // if ((voltage > 200) && (voltage < 400)) MaxCapacity = 63;               // Max cable current = 63A	100R -> should be around 0.3V
 
-    if (Config) MaxCapacity = MaxCurrent;                                   // Override with MaxCurrent when Fixed Cable is used.
+    // if (Config) MaxCapacity = MaxCurrent;                                   // Override with MaxCurrent when Fixed Cable is used.
 }
 
 
@@ -596,10 +606,10 @@ void setState(uint8_t NewState) {
     }
 
     switch (NewState) {
-        case STATE_B1:
+        case STATE_B1: // LBR no charging running, stop charging due to error ?
             if (!ChargeDelay) ChargeDelay = 3;                                  // When entering State B1, wait at least 3 seconds before switching to another state.
             // fall through
-        case STATE_A:                                                           // State A1
+        case STATE_A:  // LBR Waiting car connection                            // State A1
             CONTACTOR1_OFF;  
             CONTACTOR2_OFF;  
             ledcWrite(CP_CHANNEL, 1024);                                        // PWM off,  channel 0, duty cycle 100%
@@ -614,13 +624,13 @@ void setState(uint8_t NewState) {
                 Node[0].MinCurrent = 0;                                         // Clear ChargeDelay when disconnected.
             }
             break;
-        case STATE_B:
+        case STATE_B: // LBR car connected : CP = 9V
             CONTACTOR1_OFF;
             CONTACTOR2_OFF;
             timerAlarmWrite(timerA, PWM_95, false);                             // Enable Timer alarm, set to diode test (95%)
             SetCurrent(ChargeCurrent);                                          // Enable PWM
             break;      
-        case STATE_C:                                                           // State C2
+        case STATE_C: // LBR car asks charging : CP = 6V                            // State C2
             uint8_t i;
             ActivationMode = 255;                                               // Disable ActivationMode
 
@@ -645,32 +655,34 @@ void setState(uint8_t NewState) {
                 if (EVMeter) {                                                  // we prefer EVMeter if present
                     SetCurrent(MinCurrent);                                         // for detection of phases we are going to lock the charging current to MinCurrent
                     Current_Lock = true;
-                    for (i=0; i<3; i++) {
+// LBR detect only L1                    for (i=0; i<3; i++) {
+                    for (i=0; i<1; i++) {
                         Old_Irms[i] = Irms_EV[i];
                         _LOG_D("Trying to detect Charging Phases START Irms_EV[%i]=%u.\n", i, Irms_EV[i]);
                     }
-                    Detecting_Charging_Phases_Timer = 7;                            // we need time for the EV to decide to start charging
+                    Detecting_Charging_Phases_Timer = PHASE_DETECTION_TIME;     // we need time for the EV to decide to start charging
                 }
                 else if (MainsMeter) {                                          // or else MainsMeter will do
-                    SetCurrent(MinCurrent);                                         // for detection of phases we are going to lock the charging current to MinCurrent
+                    SetCurrent(MinCurrent);                                     // for detection of phases we are going to lock the charging current to MinCurrent
                     Current_Lock = true;
-                    for (i=0; i<3; i++) {
+// LBR only detect L1                    for (i=0; i<3; i++) {
+                    for (i=0; i<1; i++) {
                         Old_Irms[i] = Irms[i];
                         _LOG_D("Trying to detect Charging Phases START Irms[%i]=%u.\n", i, Irms[i]);
                     }
-                    Detecting_Charging_Phases_Timer = 7;                            // we need time for the EV to decide to start charging
+                    Detecting_Charging_Phases_Timer = PHASE_DETECTION_TIME;     // we need time for the EV to decide to start charging
                 }
             }
-            CONTACTOR1_ON;
+            CONTACTOR1_ON; // LBR charging on 3 phases
 
             if (!Force_Single_Phase_Charging() && Switching_To_Single_Phase != AFTER_SWITCH) {                               // in AUTO mode we start with 3phases
                 _LOG_I("Switching CONTACTOR C2 ON.\n");
-                CONTACTOR2_ON;                                                  // Contactor2 ON
+                CONTACTOR2_ON;  // To use 3 phases charging                     // Contactor2 ON
             }
             LCDTimer = 0;
             break;
-        case STATE_C1:
-            ledcWrite(CP_CHANNEL, 1024);                                        // PWM off,  channel 0, duty cycle 100%
+        case STATE_C1: // LBR PWM off to ask car stop charging
+            ledcWrite(CP_CHANNEL, 1024);                                        // PWM off=DC ON,  channel 0, duty cycle 100%
             timerAlarmWrite(timerA, PWM_100, true);                             // Alarm every 1ms, auto reload 
                                                                                 // EV should detect and stop charging within 3 seconds
             C1Timer = 6;                                                        // Wait maximum 6 seconds, before forcing the contactor off.
@@ -1139,7 +1151,7 @@ uint8_t setItemValue(uint8_t nav, uint16_t val) {
             break;
         case STATUS_MODE:
             // Do not change Charge Mode when set to Normal or Load Balancing is disabled
-            if (Mode == 0 || LoadBl == 0) break;
+            if (Mode == MODE_NORMAL || LoadBl == 0) break;
         case MENU_MODE:
             Mode = val;
             break;
@@ -1397,12 +1409,18 @@ uint16_t getItemValue(uint8_t nav) {
 void printStatus(void)
 {
         char Str[140];
-        snprintf(Str, sizeof(Str) , "#STATE: %s Error: %u StartCurrent: -%i ChargeDelay: %u SolarStopTimer: %u NoCurrent: %u Imeasured: %.1f A IsetBalanced: %.1f A\n", getStateName(State), ErrorFlags, StartCurrent,
-                                                                        ChargeDelay, SolarStopTimer,  NoCurrent,
-                                                                        (float)Imeasured/10,
-                                                                        (float)IsetBalanced/10);
+        if (Mode==MODE_SOLAR)
+        {
+            snprintf(Str, sizeof(Str) , "#StartCurrent: -%i ChargeDelay: %u SolarStopTimer: %u NoCurrent: %u\n", 
+            StartCurrent, ChargeDelay, SolarStopTimer,  NoCurrent);
+            _LOG_I("%s",Str+1);
+        }
+
+        snprintf(Str, sizeof(Str) , "#STATE: %s Error: %u Mode: %u Imeasured: %.1fA IsetBalanced: %.1fA ChargeCurrent: %.1fA LoadBl: %u\n", 
+        getStateName(State), ErrorFlags, Mode, (float)Imeasured/10, (float)IsetBalanced/10, (float)ChargeCurrent/10, LoadBl);
         _LOG_I("%s",Str+1);
-        _LOG_I("L1: %.1f A L2: %.1f A L3: %.1f A Isum: %.1f A\n", (float)Irms[0]/10, (float)Irms[1]/10, (float)Irms[2]/10, (float)Isum/10);
+
+        _LOG_I("L1: %.1f A L2: %.1fA L3: %.1fA Isum: %.1fA\n", (float)Irms[0]/10, (float)Irms[1]/10, (float)Irms[2]/10, (float)Isum/10);
 }
 
 /**
@@ -1623,7 +1641,7 @@ void EVSEStates(void * parameter) {
         // Check the external switch and RCM sensor
         CheckSwitch();
 
-        // sample the Pilot line
+        // sample the Pilot line // LBR measure Pilot tension
         pilot = Pilot();
 
         // ############### EVSE State A #################
@@ -1649,7 +1667,7 @@ void EVSEStates(void * parameter) {
 
                 ProximityPin();                                                 // Sample Proximity Pin
 
-                _LOG_I("Cable limit: %uA  Max: %uA\n", MaxCapacity, MaxCurrent);
+                _LOG_I("Cable limit: MaxCapacity %uA  MaxCurrent: %uA\n", MaxCapacity, MaxCurrent);
                 if (MaxCurrent > MaxCapacity) ChargeCurrent = MaxCapacity * 10; // Do not modify Max Cable Capacity or MaxCurrent (fix 2.05)
                 else ChargeCurrent = MaxCurrent * 10;                           // Instead use new variable ChargeCurrent
 
@@ -1721,11 +1739,11 @@ void EVSEStates(void * parameter) {
                     setState(STATE_ACTSTART);
                     ActivationTimer = 3;
 
-                    ledcWrite(CP_CHANNEL, 0);                                   // PWM off,  channel 0, duty cycle 0%
+                    ledcWrite(CP_CHANNEL, 0);                                   // PWM off=DC off,  channel 0, duty cycle 0%
                                                                                 // Control pilot static -12V
                 }
             }
-            if (pilot == PILOT_DIODE) {
+            if (pilot == PILOT_DIODE) { // LBR Car set diode check after STATE_B to be sure all is OO before to go charging
                 DiodeCheck = 1;                                                 // Diode found, OK
                 _LOG_A("Diode OK\n");
                 timerAlarmWrite(timerA, PWM_5, false);                          // Enable Timer alarm, set to start of CP signal (5%)
@@ -1810,8 +1828,13 @@ void requestEnergyMeasurement(uint8_t Meter, uint8_t Address, bool Export) {
             if (Export) ModbusReadInputRequest(Address, EMConfig[Meter].Function, EMConfig[Meter].ERegister_Exp, 2);
             else        ModbusReadInputRequest(Address, EMConfig[Meter].Function, EMConfig[Meter].ERegister, 2);
             break;
-        case EM_FINDER:
         case EM_ABB:
+            // Note:
+            // - ABB uses 64bit values for this register (size 2)
+            if (Export) requestMeasurement(Meter, Address, EMConfig[Meter].ERegister_Exp, 2);
+            else        requestMeasurement(Meter, Address, EMConfig[Meter].ERegister, 2);
+            break;
+        case EM_FINDER:
         case EM_EASTRON:
         case EM_WAGO:
             if (Export) requestMeasurement(Meter, Address, EMConfig[Meter].ERegister_Exp, 1);
@@ -1826,6 +1849,97 @@ void requestEnergyMeasurement(uint8_t Meter, uint8_t Address, bool Export) {
                 requestMeasurement(Meter, Address, EMConfig[Meter].ERegister, 1);
             break;
     }
+}
+
+
+// MQTT client
+
+volatile  bool TopicArrived = false;
+const int mqttpayloadSize = 100;
+char mqttpayload [mqttpayloadSize] = {'\0'};
+String mqtttopic="linky/Irms??";
+const int mqtttopicSize = 100;
+// char mqtttopic[mqtttopicSize] = {'\0'};
+
+void mqttcallback(char* topic, byte* payload, unsigned int length) {
+//    String messageTemp[20];
+//   _LOG_A("CallBack topic:%s\n",topic);
+
+  if ( !TopicArrived )
+  {
+    memset( mqttpayload, '\0', mqttpayloadSize ); // clear payload char buffer
+    memcpy( mqttpayload, payload, length );
+
+    // memset( mqtttopic, '\0', mqtttopicSize ); // clear payload char buffer
+    // memcpy( mqtttopic, topic, mqtttopicSize );
+    mqtttopic = ""; //clear topic string buffer
+    mqtttopic = topic; //store new topic
+
+    TopicArrived = true;
+  }
+}
+
+// LBR
+uint16_t IMain_Linky=0;
+// uint16_t Papp_Linky;
+
+WiFiClient wifiClient;
+PubSubClient mqttClient(wifiClient); 
+const char *mqttServer = "192.168.1.14";
+// int mqttPort = 1883;
+void setupMQTT() {
+  mqttClient.setServer(mqttServer, 1883);
+  // set the callback function
+  mqttClient.setCallback(mqttcallback);
+}
+
+void mqttreconnect() {
+//   Serial.println("Connecting to MQTT Broker...");
+  _LOG_D("Connecting to MQTT Broker.. LBR\n");
+  while (!mqttClient.connected()) {
+    //   Serial.println("Reconnecting to MQTT Broker..");
+      _LOG_A("Reconnecting to MQTT Broker.. LBR\n");
+      String clientId = "ESP32Client-";
+      clientId += String(random(0xffff), HEX);
+      
+      if (mqttClient.connect(clientId.c_str())) {
+        _LOG_A("Connected LBR\n");
+        // subscribe to topic
+        mqttClient.subscribe("linky/Irms");
+        mqttClient.subscribe("linky/Papp");
+      }      
+  }
+}
+
+void mqttloop()
+{
+   if(WiFi.isConnected())
+   {
+    if (!mqttClient.connected())
+        mqttreconnect();
+    
+    mqttClient.loop();
+
+    if ( TopicArrived )
+    {
+    // _LOG_A("\nmqttpayload LBR : %s",mqtttopic);
+
+    if ( mqtttopic == "linky/Irms" )
+    {
+        // _LOG_A("\nmqttpayload LBR : %s",mqttpayload);
+        IMain_Linky = atoi(mqttpayload);
+        //_LOG_D("\nlinky/Irms LBR : %i\n", IMain_Linky);
+    }
+
+    if ( mqtttopic == "linky/Papp" )
+    {
+        // _LOG_A("\nmqttpayload LBR : %s",mqttpayload);
+        Papp_Linky = atoi(mqttpayload);
+        //_LOG_D("\nlinky/Papp LBR : %i\n", Papp_Linky);
+    }
+     TopicArrived = false;
+    }
+  }
 }
 
 
@@ -1884,8 +1998,44 @@ uint8_t PollEVNode = NR_EVSES;
                     }
                     ModbusRequest++;
                 case 2:                                                         // Sensorbox or kWh meter that measures -all- currents
+#ifndef LINKY
                     _LOG_D("ModbusRequest %u: Request MainsMeter Measurement\n", ModbusRequest);
                     requestCurrentMeasurement(MainsMeter, MainsMeterAddress);
+#else
+// LBR Add mqtt Linky info here to replace sensorbox:
+// LBR BUG CUrrent in web page not updated !!!
+                    uint8_t x;
+                    CM[1]=0;CM[2]=0;  
+                    if( ( IMain_Linky!=0) ) {
+                        CM[0]=IMain_Linky*10; // LBR Convert to AMPERE * 10
+                        timeout = 10;                   // only reset timeout when data is ok,
+                    }
+                    IMain_Linky=0;  // LBR reset to know if new value received before timeout
+                    // Calculate Isum (for nodes and master)
+                    phasesLastUpdate=time(NULL);
+                    Isum = 0;
+// bug            int batteryPerPhase = getBatteryCurrent() / 3; // Divide the battery current per phase to spread evenly
+#ifdef FAKE_SUNNY_DAY
+                    int32_t temp[3]={0, 0, 0};
+                    temp[0] = INJECT_CURRENT_L1 * 10;                   //Irms is in units of 100mA
+                    temp[1] = INJECT_CURRENT_L2 * 10;
+                    temp[2] = INJECT_CURRENT_L3 * 10;
+#endif
+                    for (x = 0; x < 3; x++) {
+// LBR            for (x = 0; x < 1; x++) {
+                        // Calculate difference of Mains and PV electric meter (Solar Panel)
+                        if (PVMeter) CM[x] = CM[x] - PV[x];             // CurrentMeter and PV values are MILLI AMPERE
+                        Irms[x] = (signed int)(CM[x] / 100);            // Convert to AMPERE * 10
+#ifdef FAKE_SUNNY_DAY
+                        Irms[x] = Irms[x] - temp[x];
+#endif
+                        IrmsOriginal[x] = Irms[x];
+// bug                Irms[x] -= batteryPerPhase;
+// LBR only L1 to sum (others are not L2/L3 = 0)
+                        Isum = Isum + Irms[x];
+                    }
+                    _LOG_D("LINKY %u: Request LINKY Measurement timeout %u IMain_Linky %u\n", ModbusRequest, timeout, CM[0]);
+#endif
                     break;
                 case 3:
                     // Find next online SmartEVSE
@@ -1989,6 +2139,8 @@ uint8_t PollEVNode = NR_EVSES;
 }
 
 
+
+
 // task 1000msTimer
 void Timer1S(void * parameter) {
 
@@ -2030,6 +2182,8 @@ void Timer1S(void * parameter) {
 
         // Check if there is a RFID card in front of the reader
         CheckRFID();
+
+        mqttloop(); // LBR add mqtt client in this task
 
                  
         // When Solar Charging, once the current drops to MINcurrent a timer is started.
@@ -2140,7 +2294,6 @@ void Timer1S(void * parameter) {
 
         //_LOG_A("Task 1s free ram: %u\n", uxTaskGetStackHighWaterMark( NULL ));
 
-
         // Pause the task for 1 Sec
         vTaskDelay(1000 / portTICK_PERIOD_MS);
 
@@ -2151,7 +2304,8 @@ void Timer1S(void * parameter) {
             if (Detecting_Charging_Phases_Timer == 0) {                     // After 3 seconds we should be charging, LCDTimer doesnt get higher than 4?
 
                 uint32_t Max_Charging_Prob = 0;
-                for (int i=0; i<3; i++) {
+// LBR Detect only L1                for (int i=0; i<3; i++) {
+                for (int i=0; i<1; i++) {
                     if (EVMeter) {
                         //Charging_Prob[i] = 100 * (abs(Irms_EV[i] - Old_Irms[i])) / ChargeCurrent;    //100% means this phase is charging, 0% mwans not charging
                         Charging_Prob[i] = 10 * (abs(Irms_EV[i] - Old_Irms[i])) / MinCurrent;    //100% means this phase is charging, 0% mwans not charging
@@ -2176,7 +2330,8 @@ void Timer1S(void * parameter) {
                 _LOG_D("Detected Charging Phases: ChargeCurrent=%u, Balanced[0]=%u, IsetBalanced=%u.\n", ChargeCurrent, Balanced[0],IsetBalanced);
                 Nr_Of_Phases_Charging = 0;
 #define THRESHOLD 25
-                for (int i=0; i<3; i++) {
+// LBR only detect charging on L1               for (int i=0; i<3; i++) {
+                for (int i=0; i<1; i++) {
                     Charging_Phase[i] = false;
                     if (Charging_Prob[i] == Max_Charging_Prob) {
                         _LOG_D("Suspect I am charging at phase: L%i.\n", i+1);
@@ -2224,6 +2379,11 @@ void Timer1S(void * parameter) {
  */
 signed int receiveEnergyMeasurement(uint8_t *buf, uint8_t Meter) {
     switch (Meter) {
+        case EM_ABB:
+            // Note:
+            // - ABB uses 32-bit values, except for this measurement it uses 64bit unsigned int format
+            // We skip the first 4 bytes (effectivaly creating uint 32). Will work as long as the value does not exeed  roughly 20 million
+            return receiveMeasurement(buf, 1, EMConfig[Meter].Endianness, MB_DATATYPE_INT32, EMConfig[Meter].EDivisor-3);
         case EM_SOLAREDGE:
             // Note:
             // - SolarEdge uses 16-bit values, except for this measurement it uses 32bit int format
@@ -2291,7 +2451,8 @@ ModbusMessage MBEVMeterResponse(ModbusMessage request) {
             // Current measurement
             x = receiveCurrentMeasurement(MB.Data, EVMeter, EV );
             if (x && LoadBl <2) timeout = 10;                   // only reset timeout when data is ok, and Master/Disabled
-            for (x = 0; x < 3; x++) {
+// LBR            for (x = 0; x < 3; x++) {
+            for (x = 0; x < 1; x++) {
                 // CurrentMeter and PV values are MILLI AMPERE
                 Irms_EV[x] = (signed int)(EV[x] / 100);            // Convert to AMPERE * 10
             }
@@ -2349,7 +2510,8 @@ ModbusMessage MBMainsMeterResponse(ModbusMessage request) {
             temp[2] = INJECT_CURRENT_L3 * 10;
 #endif
             for (x = 0; x < 3; x++) {
-                // Calculate difference of Mains and PV electric meter
+// LBR            for (x = 0; x < 1; x++) {
+                // Calculate difference of Mains and PV electric meter (Solar Panel)
                 if (PVMeter) CM[x] = CM[x] - PV[x];             // CurrentMeter and PV values are MILLI AMPERE
                 Irms[x] = (signed int)(CM[x] / 100);            // Convert to AMPERE * 10
 #ifdef FAKE_SUNNY_DAY
@@ -2357,7 +2519,9 @@ ModbusMessage MBMainsMeterResponse(ModbusMessage request) {
 #endif
                 IrmsOriginal[x] = Irms[x];
                 Irms[x] -= batteryPerPhase;
-                Isum = Isum + Irms[x];
+// LBR only L1 to sum (others are not L2/L3)
+                if (x==0)
+                    Isum = Isum + Irms[x];
             }
         }
         else if (MB.Register == EMConfig[MainsMeter].ERegister) {
@@ -2904,7 +3068,7 @@ void StartwebServer(void) {
     //     response->addHeader("Content-Encoding", "gzip");
     //     request->send(response);
     // });
-
+    //  curl  -X DELETE 192.168.1.102/erasesettings 
     webServer.on("/erasesettings", HTTP_DELETE, [](AsyncWebServerRequest *request) {
         request->send(200, "text/plain", "Erasing settings, rebooting");
         if ( preferences.begin("settings", false) ) {         // our own settings
@@ -2988,11 +3152,16 @@ void StartwebServer(void) {
 
         boolean evConnected = pilot != PILOT_12V;                    //when access bit = 1, p.ex. in OFF mode, the STATEs are no longer updated
 
-        DynamicJsonDocument doc(1024); // https://arduinojson.org/v6/assistant/
+// LBR       DynamicJsonDocument doc(1024); // https://arduinojson.org/v6/assistant/
+        DynamicJsonDocument doc(2048); // https://arduinojson.org/v6/assistant/
         doc["version"] = String(VERSION);
         doc["mode"] = mode;
         doc["mode_id"] = modeId;
         doc["car_connected"] = evConnected;
+        doc["linky_power"] = Papp_Linky; // LBR TEST
+        // doc["linky_current"] = IMain_Linky; // LBR TEST
+        int64_t t_days = esp_timer_get_time()/1000000 /3600 /24 ; // in days
+        doc["days_from_boot"] = t_days;
 
         if(WiFi.isConnected()) {
             switch(WiFi.status()) {
@@ -3021,7 +3190,24 @@ void StartwebServer(void) {
         doc["evse"]["mode"] = Mode;
         doc["evse"]["solar_stop_timer"] = SolarStopTimer;
         doc["evse"]["state"] = evstate;
-        doc["evse"]["state_id"] = State;
+// LBR START
+        // doc["evse"]["state_id"] = State;
+        switch(State) {
+            case STATE_A:         doc["evse"]["state_id"] = "A : Vehicle not connected"; break;
+            case STATE_B:         doc["evse"]["state_id"] = "B : Vehicle connected / not ready to accept energy"; break;
+            case STATE_C:         doc["evse"]["state_id"] = "C : Vehicle connected / ready to accept energy / ventilation not required"; break;
+            case STATE_D:         doc["evse"]["state_id"] = "D : Vehicle connected / ready to accept energy / ventilation required (not implemented)"; break;
+            case STATE_COMM_B:    doc["evse"]["state_id"] = "E : State change request A->B (set by node)"; break;
+            case STATE_COMM_B_OK: doc["evse"]["state_id"] = "F : State change A->B OK (set by master)"; break;
+            case STATE_COMM_C:    doc["evse"]["state_id"] = "G : State change request B->C (set by node)"; break;
+            case STATE_COMM_C_OK: doc["evse"]["state_id"] = "H : State change B->C OK (set by master)"; break;
+            case STATE_ACTSTART:  doc["evse"]["state_id"] = "I : Activation mode in progress"; break;
+            case STATE_B1:        doc["evse"]["state_id"] = "J : Vehicle connected / no PWM signal"; break;
+            case STATE_C1:        doc["evse"]["state_id"] = "K : Vehicle charging / no PWM signal (temp state when stopping charge from EVSE)"; break;
+            default:              doc["evse"]["state_id"] = "LBR UNKNOW"; break;
+         }
+// LBR STOP
+
         doc["evse"]["error"] = error;
         doc["evse"]["error_id"] = errorId;
 
@@ -3042,6 +3228,8 @@ void StartwebServer(void) {
 
         doc["settings"]["charge_current"] = Balanced[0];
         doc["settings"]["override_current"] = OverrideCurrent;
+        doc["settings"]["Imeasured"] = Imeasured;
+        doc["settings"]["IsetBalanced"] = IsetBalanced;
         doc["settings"]["current_min"] = MinCurrent;
         doc["settings"]["current_max"] = MaxCurrent;
         doc["settings"]["current_main"] = MaxMains;
@@ -3056,14 +3244,19 @@ void StartwebServer(void) {
 
         doc["ev_meter"]["description"] = EMConfig[EVMeter].Desc;
         doc["ev_meter"]["address"] = EVMeterAddress;
-        doc["ev_meter"]["import_active_energy"] = round(PowerMeasured / 100)/10; //in kW, precision 1 decimal
+        doc["ev_meter"]["import_active_energy"] = round(PowerMeasured / 100)/10; //in kWh, precision 1 decimal
         doc["ev_meter"]["total_kwh"] = round(EnergyEV / 100)/10; //in kWh, precision 1 decimal
         doc["ev_meter"]["charged_kwh"] = round(EnergyCharged / 100)/10; //in kWh, precision 1 decimal
+        doc["ev_meter"]["currents"]["TOTAL"] = Irms_EV[0] + Irms_EV[1] + Irms_EV[2];
+        doc["ev_meter"]["currents"]["L1"] = Irms_EV[0];
+        doc["ev_meter"]["currents"]["L2"] = Irms_EV[1];
+        doc["ev_meter"]["currents"]["L3"] = Irms_EV[2];
 
         doc["mains_meter"]["import_active_energy"] = round(Mains_import_active_energy / 100)/10; //in kWh, precision 1 decimal
         doc["mains_meter"]["export_active_energy"] = round(Mains_export_active_energy / 100)/10; //in kWh, precision 1 decimal
 
-        doc["phase_currents"]["TOTAL"] = Irms[0] + Irms[1] + Irms[2];
+// LBR main Linky is L1       doc["phase_currents"]["TOTAL"] = Irms[0] + Irms[1] + Irms[2];
+        doc["phase_currents"]["TOTAL"] = Irms[0] ;
         doc["phase_currents"]["L1"] = Irms[0];
         doc["phase_currents"]["L2"] = Irms[1];
         doc["phase_currents"]["L3"] = Irms[2];
@@ -3078,11 +3271,12 @@ void StartwebServer(void) {
         
         doc["backlight"]["timer"] = BacklightTimer;
         doc["backlight"]["status"] = backlight;
-
+        
+        // _LOG_A( "JSON SIZE %d",doc.size() );
         String json;
         serializeJson(doc, json);
 
-        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+        AsyncWebServerResponse *response = request->beginResponse(250, "application/json", json);
         response->addHeader("Access-Control-Allow-Origin","*"); 
         request->send(response);
     });
@@ -3200,7 +3394,8 @@ void StartwebServer(void) {
                     doc["original"]["L" + x] = Irms[x];
                     Irms[x] -= batteryPerPhase;           
                     doc["L" + x] = Irms[x];
-                    Isum = Isum + Irms[x];
+// LBR only L1 to sum (others are not L2/L3)
+                    if (x==0) Isum = Isum + Irms[x];
                 }
                 doc["TOTAL"] = Isum;
 
@@ -3374,7 +3569,6 @@ void SetupNetworkTask(void * parameter) {
 
 }
 
-
 void setup() {
 
     pinMode(PIN_CP_OUT, OUTPUT);            // CP output
@@ -3428,10 +3622,11 @@ void setup() {
     // The CP (control pilot) output is a fixed 1khz square-wave (+6..9v / -12v).
     // It's pulse width varies between 10% and 96% indicating 6A-80A charging current.
     // to detect state changes we should measure the CP signal while it's at ~5% (so 50uS after the positive pulse started)
+    // LBR 1ms periodic / High during 0.5ms  with PWM=50%, when PWM=5%, High during 50us, voltage measurement can be done at 50us (PWM min is 10%) 
     // we use an i/o interrupt at the CP pin output, and a one shot timer interrupt to start the ADC conversion.
     // would be nice if there was an easier way...
 
-    // setup timer, and one shot timer interrupt to 50us
+    // setup timer, and one shot timer interrupt to 50us LBR : need to measure positive voltage value from CP pin (state)
     timerA = timerBegin(0, 80, true);
     timerAttachInterrupt(timerA, &onTimerA, false);
     // we start in STATE A, with a static +12V CP signal
@@ -3443,8 +3638,11 @@ void setup() {
 
     // Setup ADC on CP, PP and Temperature pin
     adc1_config_width(ADC_WIDTH_BIT_10);                                    // 10 bits ADC resolution is enough
+    // LBR GPIO39 CP-IN
     adc1_config_channel_atten(ADC1_CHANNEL_3, ADC_ATTEN_DB_11);             // setup the CP pin input attenuation to 11db
-    adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_6);              // setup the PP pin input attenuation to 6db
+    // LBR GPIO34 PP IN
+// LBR no need w/o socket    adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_6);              // setup the PP pin input attenuation to 6db
+    // LBR GPIO36 TEMP
     adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_6);              // setup the Temperature input attenuation to 6db
 
     //Characterize the ADC at particular attentuation for each channel
@@ -3475,15 +3673,15 @@ void setup() {
     ledcAttachPin(PIN_LEDB, BLUE_CHANNEL);
     ledcAttachPin(PIN_LCD_LED, LCD_CHANNEL);
 
-    ledcWrite(CP_CHANNEL, 1024);                // channel 0, duty cycle 100%
-    ledcWrite(RED_CHANNEL, 255);
+    ledcWrite(CP_CHANNEL, 1024);                // channel 0, duty cycle 100%=DC voltage LBR 10 bits 100%=1024
+    ledcWrite(RED_CHANNEL, 255);                // LBR 8bits=255 for 100%
     ledcWrite(GREEN_CHANNEL, 0);
     ledcWrite(BLUE_CHANNEL, 255);
     ledcWrite(LCD_CHANNEL, 0);
 
     // Setup PIN interrupt on rising edge
     // the timer interrupt will be reset in the ISR.
-    attachInterrupt(PIN_CP_OUT, onCPpulse, RISING);   
+    attachInterrupt(PIN_CP_OUT, onCPpulse, RISING);   // LBR PWM output is connected to ISR to detect rising front
    
     // Uart 1 is used for Modbus @ 9600 8N1
     Serial1.begin(MODBUS_BAUDRATE, SERIAL_8N1, PIN_RS485_RX, PIN_RS485_TX);
@@ -3534,7 +3732,8 @@ void setup() {
     } else _LOG_A("No KeyStorage found in nvs!\n");
 
 
-    // Create Task EVSEStates, that handles changes in the CP signal
+    // Create Task EVSEStates (10ms), that handles changes in the CP signal, LBR handles EVSE State Changes
+    // Reads buttons, and updates the LCD
     xTaskCreate(
         EVSEStates,     // Function that should be called
         "EVSEStates",   // Name of the task (for debugging)
@@ -3544,7 +3743,7 @@ void setup() {
         NULL            // Task handle
     );
 
-    // Create Task BlinkLed (10ms)
+    // Create Task BlinkLed (10ms) LBR Blink the RGB LED and LCD Backlight
     xTaskCreate(
         BlinkLed,       // Function that should be called
         "BlinkLed",     // Name of the task (for debugging)
@@ -3554,7 +3753,7 @@ void setup() {
         NULL            // Task handle
     );
 
-    // Create Task 100ms Timer
+    // Create Task 100ms Timer LBR handles the Cable Lock and modbus
     xTaskCreate(
         Timer100ms,     // Function that should be called
         "Timer100ms",   // Name of the task (for debugging)
@@ -3568,7 +3767,8 @@ void setup() {
     xTaskCreate(
         Timer1S,        // Function that should be called
         "Timer1S",      // Name of the task (for debugging)
-        4096,           // Stack size (bytes)                              
+// LBR add stack for mqtt treatment        4096,           // Stack size (bytes)                              
+        5120,           // Stack size (bytes)                              
         NULL,           // Parameter to pass
         1,              // Task priority
         NULL            // Task handle
@@ -3594,6 +3794,9 @@ void setup() {
   
     BacklightTimer = BACKLIGHT;
     GLCD_init();
+
+// LBR
+    setupMQTT();
           
 }
 
@@ -3610,4 +3813,6 @@ void loop() {
 
     //printf("RSSI: %d\r",WiFi.RSSI() );
     */
+// _LOG_A("\nlooploop LBR :");
+
 }

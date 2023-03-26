@@ -26,7 +26,7 @@
 #define __EVSE_MAIN
 
 //the wifi-debugger is available by telnetting to your SmartEVSE device
-#define DBG 0  //comment or set to 0 for production release, 0 = no debug 1 = debug over telnet, 2 = debug over usb AND telnet
+#define DBG 2  //comment or set to 0 for production release, 0 = no debug 1 = debug over telnet, 2 = debug over usb AND telnet
 
 //uncomment this to emulate an rfid reader with rfid of card = 123456
 //showing the rfid card is simulated by executing http://smartevse-xxx.lan/debug?showrfid=1
@@ -63,23 +63,23 @@
 #define _LOG_V( ... ) //dummy
 #define _LOG_A( ... ) //dummy
 #else
-#define _LOG_W( ... ) rdebugW( __VA_ARGS__ )
-#define _LOG_I( ... ) rdebugI( __VA_ARGS__ )
-#define _LOG_D( ... ) rdebugD( __VA_ARGS__ )
-#define _LOG_V( ... ) rdebugV( __VA_ARGS__ )
-#define _LOG_A( ... ) rdebugA( __VA_ARGS__ )
+#define _LOG_W( ... ) rdebugW( __VA_ARGS__ ) // Warn
+#define _LOG_I( ... ) rdebugI( __VA_ARGS__ ) // Info
+#define _LOG_D( ... ) rdebugD( __VA_ARGS__ ) // Debug
+#define _LOG_V( ... ) rdebugV( __VA_ARGS__ ) // Verbose
+#define _LOG_A( ... ) rdebugA( __VA_ARGS__ ) // Error
 #include "RemoteDebug.h"  //https://github.com/JoaoLopesF/RemoteDebug
 extern RemoteDebug Debug;
 #endif
 
 
 #define TRANSFORMER_COMP 100   
-
+#define PHASE_DETECTION_TIME 11
 
 // Pin definitions left side ESP32
-#define PIN_TEMP 36
-#define PIN_CP_IN 39
-#define PIN_PP_IN 34
+#define PIN_TEMP 36   // LBR ADC1_CHANNEL_0
+#define PIN_CP_IN 39  // LBR ADC1_CHANNEL_3
+#define PIN_PP_IN 34  // LBR ADC1_CHANNEL_6
 #define PIN_LOCK_IN 35
 #define PIN_SSR 32
 #define PIN_LCD_SDO_B3 33                                                       // = SPI_MOSI
@@ -122,13 +122,17 @@ extern RemoteDebug Debug;
 #define PWM_100 1000                                                            // 100% of PWM
 
 #define ICAL 1024                                                               // Irms Calibration value (for Current transformers)
-#define MAX_MAINS 25                                                            // max Current the Mains connection can supply
-#define MAX_CURRENT 13                                                          // max charging Current for the EV
+// LBR #define MAX_MAINS 25                                                            // max Current the Mains connection can supply
+#define MAX_MAINS 45                                                            // max Current the Mains connection can supply
+// LBR #define MAX_CURRENT 13                                                   // max charging Current for the EV
+#define MAX_CURRENT 32                                                          // max charging Current for the EV
 #define MIN_CURRENT 6                                                           // minimum Current the EV will accept
-#define MODE 0                                                                  // Normal EVSE mode
+#define MODE MODE_NORMAL                                                                  // Normal EVSE mode
 #define LOCK 0                                                                  // No Cable lock
-#define MAX_CIRCUIT 16                                                          // Max current of the EVSE circuit breaker
-#define CONFIG 0                                                                // Configuration: 0= TYPE 2 socket, 1= Fixed Cable
+// LBR#define MAX_CIRCUIT 16                                                          // Max current of the EVSE circuit breaker
+#define MAX_CIRCUIT 32                                                          // Max current of the EVSE circuit breaker
+// LBR Fixed socket #define CONFIG 0                                                                // Configuration: 0= TYPE 2 socket, 1= Fixed Cable
+#define CONFIG 1                                                                // Configuration: 0= TYPE 2 socket, 1= Fixed Cable
 #define LOADBL 0                                                                // Load Balancing disabled
 #define SWITCH 0                                                                // 0= Charge on plugin, 1= (Push)Button on IO2 is used to Start/Stop charging.
 #define RC_MON 0                                                                // Residual Current Monitoring on IO3. Disabled=0, RCM14=1
@@ -162,13 +166,13 @@ extern RemoteDebug Debug;
 #define RFID_READER 0
 #define WIFI_MODE 0
 #define AP_PASSWORD "00000000"
-#define ENABLE_C2 NOT_PRESENT
+#define ENABLE_C2 ALWAYS_OFF
 #define MAX_TEMPERATURE 65
 
 
 // Mode settings
 #define MODE_NORMAL 0
-#define MODE_SMART 1
+#define MODE_SMART 1 // LBR Load balancing activated, charger limits to Mains 45A or MaxCircuit 32A
 #define MODE_SOLAR 2
 
 #define MODBUS_BAUDRATE 9600
@@ -368,7 +372,7 @@ extern uint8_t Show_RFID;
 #endif
 
 extern int32_t Irms[3];                                                         // Momentary current per Phase (Amps *10) (23 = 2.3A)
-extern int32_t Irms_EV[3];                                                         // Momentary current per Phase (Amps *10) (23 = 2.3A)
+extern int32_t Irms_EV[3];                                                      // Momentary current per Phase (Amps *10) (23 = 2.3A)
 
 extern uint8_t State;
 extern uint8_t ErrorFlags;

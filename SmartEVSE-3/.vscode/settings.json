@@ -3,5 +3,6 @@
     "files.associations": {
         "*.tcc": "cpp",
         "algorithm": "cpp"
-    }
+    },
+    "C_Cpp.dimInactiveRegions": false
 }
