@@ -1891,6 +1891,8 @@ void setupMQTT() {
   mqttClient.setServer(mqttServer, 1883);
   // set the callback function
   mqttClient.setCallback(mqttcallback);
+  mqttClient.setKeepAlive(30);
+  mqttClient.setSocketTimeout(30);
 }
 
 void mqttreconnect() {
@@ -2100,7 +2102,7 @@ uint8_t PollEVNode = NR_EVSES;
                     ModbusRequest++;
                 case 21:
                     // Request active energy if Mainsmeter is configured
-                    if (MainsMeter ) {
+                    if (MainsMeter) {
                         energytimer++; //this ticks approx every second?!?
                         if (energytimer == 30) {
                             _LOG_D("ModbusRequest %u: Request MainsMeter Import Active Energy Measurement\n", ModbusRequest);

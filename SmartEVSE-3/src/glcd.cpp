@@ -881,6 +881,7 @@ uint8_t getMenuItems (void) {
                                                                                 // the total current (subpanel configuration)
         MenuItems[m++] = MENU_CIRCUIT;                                          // - Max current of the EVSE circuit (A)
     }
+    MenuItems[m++] = MENU_MAX;                                                  // Max Charge current (A)
     if (LoadBl == 0)
         MenuItems[m++] = MENU_C2;
     MenuItems[m++] = MENU_MAX;                                                  // Max Charge current (A)
