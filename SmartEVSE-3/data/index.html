@@ -67,7 +67,7 @@
             $('#html_temp').text(data.evse.temp + " °C / " + data.evse.temp_max + " °C");
 
             $('#html_state_id').text(data.evse.state_id); // LBR
-            $('#html_signal_rssi').text(data.wifi.rssi + "dBm"); // LBR
+            $('#html_signal_rssi').text(data.wifi.rssi + "dBm " + data.wifi.bssid ); // LBR
             $('#html_linky_power').text(data.linky_power );
             // $('#html_linky_irms').text(data.linky_current );
             $('#html_days_from_boot').text(data.days_from_boot + " days");

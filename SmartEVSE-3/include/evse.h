@@ -125,16 +125,16 @@ extern RemoteDebug Debug;
 // LBR #define MAX_MAINS 25                                                            // max Current the Mains connection can supply
 #define MAX_MAINS 45                                                            // max Current the Mains connection can supply
 // LBR #define MAX_CURRENT 13                                                   // max charging Current for the EV
-#define MAX_CURRENT 35                                                         // max charging Current for the EV
+#define MAX_CURRENT 33                                                         // max charging Current for the EV
 #define MIN_CURRENT 6                                                           // minimum Current the EV will accept
 #define MODE MODE_SMART                                                                  // Normal EVSE mode
 #define LOCK 0                                                                  // No Cable lock
 // LBR#define MAX_CIRCUIT 16                                                          // Max current of the EVSE circuit breaker
-#define MAX_CIRCUIT 35                                                          // Max current of the EVSE circuit breaker
+#define MAX_CIRCUIT 33                                                          // Max current of the EVSE circuit breaker
 // LBR Fixed socket #define CONFIG 0                                                                // Configuration: 0= TYPE 2 socket, 1= Fixed Cable
 #define CONFIG 1                                                                // Configuration: 0= TYPE 2 socket, 1= Fixed Cable
 #define LOADBL 0                                                                // Load Balancing disabled
-#define SWITCH 0                                                                // 0= Charge on plugin, 1= (Push)Button on IO2 is used to Start/Stop charging.
+#define SWITCH 1                                                                // 0= Charge on plugin, 1= (Push)Button on IO2 is used to Start/Stop charging.
 #define RC_MON 0                                                                // Residual Current Monitoring on IO3. Disabled=0, RCM14=1
 #define CHARGEDELAY 60                                                          // Seconds to wait after overcurrent, before trying again
 #define BACKLIGHT 120                                                           // Seconds delay for the LCD backlight to turn off.

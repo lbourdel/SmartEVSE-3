@@ -35,6 +35,7 @@
 #include "utils.h"
 #include "OneWire.h"
 #include "modbus.h"
+#include "pwd.h" // Wifi pwd
 
 #ifndef DEBUG_DISABLED
 RemoteDebug Debug;
@@ -3550,10 +3551,12 @@ void SetupNetworkTask(void * parameter) {
         StartwebServer();       //restart webserver
     }
 
+
+const uint8_t bssid_u8[6] = {0x8C,0x97,0xEA,0xA9,0x13,0x40}; // Repeteur Free
     if (WIFImode == 1 && WiFi.getMode() == WIFI_OFF) {
         _LOG_A("Starting WiFi..\n");
         WiFi.mode(WIFI_STA);
-        WiFi.begin();
+        WiFi.begin( WIFI_SSID, WIFI_PASS, 0, bssid_u8);
     }    
 
     if (WIFImode == 0 && WiFi.getMode() != WIFI_OFF) {
@@ -3805,13 +3808,9 @@ void setup() {
 void loop() {
 
     delay(1000);
-    //time_t current_time;
     //current_time = time(NULL);
     /*
     LocalTimeSet = getLocalTime(&timeinfo, 1000U);
-    
-    //_LOG_A("\ntime: %02d:%02d:%02d dst:%u epoch:%ld",timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, timeinfo.tm_isdst, (long)current_time);
-  
 
     //printf("RSSI: %d\r",WiFi.RSSI() );
     */

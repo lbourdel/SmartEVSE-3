@@ -1,3 +1,213 @@
+ *  Executing task: C:\Users\lbour\.platformio\penv\Scripts\platformio.exe run --environment release 
+
+Processing release (platform: espressif32 @ 6.3.2; board: esp32dev; framework: arduino)
+------------------------------------------------------------------------------------------------------
+Verbose mode can be enabled via `-v, --verbose` option
+CONFIGURATION: https://docs.platformio.org/page/boards/espressif32/esp32dev.html
+PLATFORM: Espressif 32 (6.3.2) > Espressif ESP32 Dev Module
+HARDWARE: ESP32 240MHz, 320KB RAM, 4MB Flash
+DEBUG: Current (cmsis-dap) External (cmsis-dap, esp-bridge, esp-prog, iot-bus-jtag, jlink, minimodule, olimex-arm-usb-ocd, olimex-arm-usb-ocd-h, olimex-arm-usb-tiny-h, olimex-jtag-tiny, tumpa)
+PACKAGES:
+ - framework-arduinoespressif32 @ 3.20009.0 (2.0.9)
+ - tool-esptoolpy @ 1.40501.0 (4.5.1)
+ - toolchain-xtensa-esp32 @ 8.4.0+2021r2-patch5
+LDF: Library Dependency Finder -> https://bit.ly/configure-pio-ldf
+LDF Modes: Finder ~ chain, Compatibility ~ soft
+Found 43 compatible libraries
+Scanning dependencies...
+Dependency Graph
+|-- AsyncTCP-esphome @ 2.0.1
+|-- ESPAsyncWebServer-esphome @ 3.1.0
+|-- ESPAsync_WiFiManager @ 1.12.1
+|-- eModbus @ 1.6.0
+|-- PubSubClient @ 2.8.0
+|-- ArduinoJson @ 6.21.3
+|-- Preferences @ 2.0.0
+|-- ESP Async WebServer @ 1.2.3
+|-- ESPmDNS @ 2.0.0
+|-- FS @ 2.0.0
+|-- SPI @ 2.0.0
+|-- SPIFFS @ 2.0.0
+|-- Update @ 2.0.0
+|-- WiFi @ 2.0.0
+|-- RemoteDebug @ 3.0.5
+Building in release mode
+Compiling .pio\build\release\src\OneWire.cpp.o
+Compiling .pio\build\release\src\evse.cpp.o
+Compiling .pio\build\release\src\font.cpp.o
+Compiling .pio\build\release\src\font2.cpp.o
+Compiling .pio\build\release\src\glcd.cpp.o
+Compiling .pio\build\release\src\modbus.cpp.o
+Compiling .pio\build\release\src\utils.cpp.o
+Building .pio\build\release\bootloader.bin
+Generating partitions .pio\build\release\partitions.bin
+esptool.py v4.5.1
+Creating esp32 image...
+Merged 1 ELF section
+Successfully created esp32 image.
+Compiling .pio\build\release\liba2b\AsyncTCP-esphome\AsyncTCP.cpp.o
+Compiling .pio\build\release\lib45c\FS\FS.cpp.o
+Compiling .pio\build\release\lib45c\FS\vfs_api.cpp.o
+Compiling .pio\build\release\libea7\WiFi\WiFi.cpp.o
+Compiling .pio\build\release\libea7\WiFi\WiFiAP.cpp.o
+Compiling .pio\build\release\libea7\WiFi\WiFiClient.cpp.o
+Compiling .pio\build\release\libea7\WiFi\WiFiGeneric.cpp.o
+Compiling .pio\build\release\libea7\WiFi\WiFiMulti.cpp.o
+Compiling .pio\build\release\libea7\WiFi\WiFiSTA.cpp.o
+Compiling .pio\build\release\libea7\WiFi\WiFiScan.cpp.o
+Compiling .pio\build\release\libea7\WiFi\WiFiServer.cpp.o
+Compiling .pio\build\release\libea7\WiFi\WiFiUdp.cpp.o
+Compiling .pio\build\release\lib68b\ESPAsyncWebServer-esphome\AsyncEventSource.cpp.o
+Compiling .pio\build\release\lib68b\ESPAsyncWebServer-esphome\AsyncWebSocket.cpp.o
+Compiling .pio\build\release\lib68b\ESPAsyncWebServer-esphome\WebAuthentication.cpp.o
+Archiving .pio\build\release\liba2b\libAsyncTCP-esphome.a
+Indexing .pio\build\release\liba2b\libAsyncTCP-esphome.a
+Archiving .pio\build\release\lib45c\libFS.a
+Compiling .pio\build\release\lib68b\ESPAsyncWebServer-esphome\WebHandlers.cpp.o
+Compiling .pio\build\release\lib68b\ESPAsyncWebServer-esphome\WebRequest.cpp.o
+Compiling .pio\build\release\lib68b\ESPAsyncWebServer-esphome\WebResponses.cpp.o
+Compiling .pio\build\release\lib68b\ESPAsyncWebServer-esphome\WebServer.cpp.o
+Indexing .pio\build\release\lib45c\libFS.a
+Compiling .pio\build\release\libc7f\ESP Async WebServer\AsyncEventSource.cpp.o
+Compiling .pio\build\release\libc7f\ESP Async WebServer\AsyncWebSocket.cpp.o
+Compiling .pio\build\release\libc7f\ESP Async WebServer\SPIFFSEditor.cpp.o
+Compiling .pio\build\release\libc7f\ESP Async WebServer\WebAuthentication.cpp.o
+Compiling .pio\build\release\libc7f\ESP Async WebServer\WebHandlers.cpp.o
+Compiling .pio\build\release\libc7f\ESP Async WebServer\WebRequest.cpp.o
+Compiling .pio\build\release\libc7f\ESP Async WebServer\WebResponses.cpp.o
+Archiving .pio\build\release\libea7\libWiFi.a
+Indexing .pio\build\release\libea7\libWiFi.a
+Compiling .pio\build\release\libc7f\ESP Async WebServer\WebServer.cpp.o
+Compiling .pio\build\release\libf87\DNSServer\DNSServer.cpp.o
+Compiling .pio\build\release\lib81d\eModbus\CoilData.cpp.o
+Compiling .pio\build\release\lib81d\eModbus\Logging.cpp.o
+Compiling .pio\build\release\lib81d\eModbus\ModbusClient.cpp.o
+Compiling .pio\build\release\lib81d\eModbus\ModbusClientRTU.cpp.o
+Compiling .pio\build\release\lib81d\eModbus\ModbusClientTCP.cpp.o
+Compiling .pio\build\release\lib81d\eModbus\ModbusClientTCPasync.cpp.o
+Archiving .pio\build\release\libf87\libDNSServer.a
+Indexing .pio\build\release\libf87\libDNSServer.a
+Archiving .pio\build\release\lib68b\libESPAsyncWebServer-esphome.a
+Compiling .pio\build\release\lib81d\eModbus\ModbusMessage.cpp.o
+Compiling .pio\build\release\lib81d\eModbus\ModbusServer.cpp.o
+Compiling .pio\build\release\lib81d\eModbus\ModbusServerRTU.cpp.o
+Compiling .pio\build\release\lib81d\eModbus\ModbusServerTCPasync.cpp.o
+Indexing .pio\build\release\lib68b\libESPAsyncWebServer-esphome.a
+Compiling .pio\build\release\lib81d\eModbus\ModbusTypeDefs.cpp.o
+Compiling .pio\build\release\lib81d\eModbus\RTUutils.cpp.o
+Compiling .pio\build\release\libf88\PubSubClient\PubSubClient.cpp.o
+Compiling .pio\build\release\lib0f2\Preferences\Preferences.cpp.o
+Compiling .pio\build\release\lib79f\ESPmDNS\ESPmDNS.cpp.o
+Compiling .pio\build\release\libbaa\SPI\SPI.cpp.o
+Compiling .pio\build\release\libbfe\SPIFFS\SPIFFS.cpp.o
+Compiling .pio\build\release\liba78\Update\HttpsOTAUpdate.cpp.o
+Compiling .pio\build\release\liba78\Update\Updater.cpp.o
+Compiling .pio\build\release\libcf7\custom-Ethernet\Dhcp.cpp.o
+Compiling .pio\build\release\libcf7\custom-Ethernet\Dns.cpp.o
+Compiling .pio\build\release\libcf7\custom-Ethernet\Ethernet.cpp.o
+Archiving .pio\build\release\lib0f2\libPreferences.a
+Archiving .pio\build\release\libf88\libPubSubClient.a
+Archiving .pio\build\release\libbaa\libSPI.a
+Archiving .pio\build\release\lib81d\libeModbus.a
+Compiling .pio\build\release\libcf7\custom-Ethernet\EthernetClient.cpp.o
+Compiling .pio\build\release\libcf7\custom-Ethernet\EthernetServer.cpp.o
+Compiling .pio\build\release\libcf7\custom-Ethernet\EthernetUdp.cpp.o
+Compiling .pio\build\release\libcf7\custom-Ethernet\socket.cpp.o
+Indexing .pio\build\release\libf88\libPubSubClient.a
+Indexing .pio\build\release\lib81d\libeModbus.a
+Indexing .pio\build\release\lib0f2\libPreferences.a
+Indexing .pio\build\release\libbaa\libSPI.a
+Compiling .pio\build\release\libcf7\custom-Ethernet\utility\w5100.cpp.o
+Compiling .pio\build\release\libf74\WiFiClientSecure\WiFiClientSecure.cpp.o
+Archiving .pio\build\release\libbfe\libSPIFFS.a
+Archiving .pio\build\release\lib79f\libESPmDNS.a
+Compiling .pio\build\release\libf74\WiFiClientSecure\esp_crt_bundle.c.o
+Compiling .pio\build\release\libf74\WiFiClientSecure\ssl_client.cpp.o
+Indexing .pio\build\release\libbfe\libSPIFFS.a
+Indexing .pio\build\release\lib79f\libESPmDNS.a
+Compiling .pio\build\release\lib06f\RemoteDebug\RemoteDebug.cpp.o
+Archiving .pio\build\release\liba78\libUpdate.a
+Archiving .pio\build\release\libc7f\libESP Async WebServer.a
+Compiling .pio\build\release\lib06f\RemoteDebug\RemoteDebugWS.cpp.o
+Compiling .pio\build\release\lib06f\RemoteDebug\utility\WebSockets.cpp.o
+Compiling .pio\build\release\lib06f\RemoteDebug\utility\WebSocketsClient.cpp.o
+Indexing .pio\build\release\liba78\libUpdate.a
+Indexing .pio\build\release\libc7f\libESP Async WebServer.a
+Compiling .pio\build\release\lib06f\RemoteDebug\utility\WebSocketsServer.cpp.o
+Compiling .pio\build\release\lib06f\RemoteDebug\utility\libb64\cdecode.c.o
+Compiling .pio\build\release\lib06f\RemoteDebug\utility\libb64\cencode.c.o
+Compiling .pio\build\release\lib06f\RemoteDebug\utility\libsha1\libsha1.c.o
+Compiling .pio\build\release\FrameworkArduino\Esp.cpp.o
+Compiling .pio\build\release\FrameworkArduino\FirmwareMSC.cpp.o
+Archiving .pio\build\release\libcf7\libcustom-Ethernet.a
+Compiling .pio\build\release\FrameworkArduino\FunctionalInterrupt.cpp.o
+Compiling .pio\build\release\FrameworkArduino\HWCDC.cpp.o
+Compiling .pio\build\release\FrameworkArduino\HardwareSerial.cpp.o
+Indexing .pio\build\release\libcf7\libcustom-Ethernet.a
+Compiling .pio\build\release\FrameworkArduino\IPAddress.cpp.o
+Compiling .pio\build\release\FrameworkArduino\IPv6Address.cpp.o
+Compiling .pio\build\release\FrameworkArduino\MD5Builder.cpp.o
+Compiling .pio\build\release\FrameworkArduino\Print.cpp.o
+Compiling .pio\build\release\FrameworkArduino\Stream.cpp.o
+Compiling .pio\build\release\FrameworkArduino\StreamString.cpp.o
+Compiling .pio\build\release\FrameworkArduino\Tone.cpp.o
+Compiling .pio\build\release\FrameworkArduino\USB.cpp.o
+Archiving .pio\build\release\libf74\libWiFiClientSecure.a
+In file included from lib/RemoteDebug/src/utility/WebSockets.cpp:43:
+C:/Users/lbour/.platformio/packages/framework-arduinoespressif32@3.20009.0/tools/sdk/esp32/include/mbedtls/port/include/esp32/sha.h:20:2: warning: #warning esp32/sha.h is deprecated, please use sha_parallel_engine.h instead [-Wcpp]
+ #warning esp32/sha.h is deprecated, please use sha_parallel_engine.h instead
+  ^~~~~~~
+Indexing .pio\build\release\libf74\libWiFiClientSecure.a
+Compiling .pio\build\release\FrameworkArduino\USBCDC.cpp.o
+Compiling .pio\build\release\FrameworkArduino\USBMSC.cpp.o
+Compiling .pio\build\release\FrameworkArduino\WMath.cpp.o
+Compiling .pio\build\release\FrameworkArduino\WString.cpp.o
+Compiling .pio\build\release\FrameworkArduino\base64.cpp.o
+Archiving .pio\build\release\lib06f\libRemoteDebug.a
+Compiling .pio\build\release\FrameworkArduino\cbuf.cpp.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-adc.c.o
+Indexing .pio\build\release\lib06f\libRemoteDebug.a
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-bt.c.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-cpu.c.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-dac.c.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-gpio.c.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-i2c-slave.c.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-i2c.c.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-ledc.c.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-matrix.c.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-misc.c.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-psram.c.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-rgb-led.c.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-rmt.c.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-sigmadelta.c.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-spi.c.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-time.c.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-timer.c.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-tinyusb.c.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-touch.c.o
+Compiling .pio\build\release\FrameworkArduino\esp32-hal-uart.c.o
+Compiling .pio\build\release\FrameworkArduino\firmware_msc_fat.c.o
+Compiling .pio\build\release\FrameworkArduino\libb64\cdecode.c.o
+Compiling .pio\build\release\FrameworkArduino\libb64\cencode.c.o
+Compiling .pio\build\release\FrameworkArduino\main.cpp.o
+Compiling .pio\build\release\FrameworkArduino\stdlib_noniso.c.o
+Compiling .pio\build\release\FrameworkArduino\wiring_pulse.c.o
+Compiling .pio\build\release\FrameworkArduino\wiring_shift.c.o
+Archiving .pio\build\release\libFrameworkArduino.a
+Indexing .pio\build\release\libFrameworkArduino.a
+Linking .pio\build\release\firmware.elf
+Retrieving maximum program size .pio\build\release\firmware.elf
+Checking size .pio\build\release\firmware.elf
+Advanced Memory Usage is available via "PlatformIO Home > Project Inspect"
+RAM:   [==        ]  15.6% (used 51140 bytes from 327680 bytes)
+Flash: [======    ]  60.4% (used 1069277 bytes from 1769472 bytes)
+Building .pio\build\release\firmware.bin
+esptool.py v4.5.1
+Creating esp32 image...
+Merged 25 ELF sections
+Successfully created esp32 image.
+==================================== [SUCCESS] Took 80.44 seconds ====================================
+
 This directory is intended for project specific (private) libraries.
 PlatformIO will compile them to static libraries and link into executable file.
 
