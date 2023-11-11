@@ -69,8 +69,8 @@ ESPAsync_WiFiManager ESPAsync_wifiManager(&webServer, &dnsServer, APhostname.c_s
 // LBR not used String Router_Pass;
 
 // Create a ModbusRTU server and client instance on Serial1 
-ModbusServerRTU MBserver(Serial1, 2000, PIN_RS485_DIR);     // TCP timeout set to 2000 ms
-ModbusClientRTU MBclient(Serial1, PIN_RS485_DIR);  
+ModbusServerRTU MBserver( 2000, PIN_RS485_DIR);     // TCP timeout set to 2000 ms
+ModbusClientRTU MBclient( PIN_RS485_DIR);  
 
 hw_timer_t * timerA = NULL;
 Preferences preferences;
@@ -2753,14 +2753,14 @@ void ConfigureModbusMode(uint8_t newmode) {
             if (PVMeter) MBserver.registerWorker(PVMeterAddress, ANY_FUNCTION_CODE, &MBPVMeterResponse);
 
             // Start ModbusRTU Node background task
-            MBserver.start();
+            MBserver.begin(Serial1);
 
         } else if (LoadBl < 2 ) {
             // Setup Modbus workers as Master 
             // Stop Node background task (if active)
             _LOG_A("Setup Modbus as Master/Client, stop Server/Node handler\n");
 
-            if (newmode != 255) MBserver.stop();
+            if (newmode != 255) MBserver.end();
             _LOG_A("task free ram: %u\n", uxTaskGetStackHighWaterMark( NULL ));
 
             MBclient.setTimeout(100);       // timeout 100ms
@@ -2768,7 +2768,7 @@ void ConfigureModbusMode(uint8_t newmode) {
             MBclient.onErrorHandler(&MBhandleError);
 
             // Start ModbusRTU Master backgroud task
-            MBclient.begin();
+            MBclient.begin(Serial1);
         } 
     } else if (newmode > 1) {
         // Register worker. at serverID 'LoadBl', all function codes
@@ -3689,6 +3689,7 @@ void setup() {
     attachInterrupt(PIN_CP_OUT, onCPpulse, RISING);   // LBR PWM output is connected to ISR to detect rising front
    
     // Uart 1 is used for Modbus @ 9600 8N1
+    RTUutils::prepareHardwareSerial(Serial1);
     Serial1.begin(MODBUS_BAUDRATE, SERIAL_8N1, PIN_RS485_RX, PIN_RS485_TX);
 
    
