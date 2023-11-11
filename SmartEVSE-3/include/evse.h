@@ -43,6 +43,8 @@
 #define INJECT_CURRENT_L3 0
 #endif
 
+#define FORCE_L1_DETECTION 1  // LBR Force Charging only on L1
+
 #ifndef VERSION
 #if DBG == 0
 #define VERSION "v3serkri-1.5.2"

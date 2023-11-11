@@ -656,8 +656,7 @@ void setState(uint8_t NewState) {
                 if (EVMeter) {                                                  // we prefer EVMeter if present
                     SetCurrent(MinCurrent);                                         // for detection of phases we are going to lock the charging current to MinCurrent
                     Current_Lock = true;
-// LBR detect only L1                    for (i=0; i<3; i++) {
-                    for (i=0; i<1; i++) {
+                    for (i=0; i<3; i++) {
                         Old_Irms[i] = Irms_EV[i];
                         _LOG_D("Trying to detect Charging Phases START Irms_EV[%i]=%u.\n", i, Irms_EV[i]);
                     }
@@ -2307,8 +2306,7 @@ void Timer1S(void * parameter) {
             if (Detecting_Charging_Phases_Timer == 0) {                     // After 3 seconds we should be charging, LCDTimer doesnt get higher than 4?
 
                 uint32_t Max_Charging_Prob = 0;
-// LBR Detect only L1                for (int i=0; i<3; i++) {
-                for (int i=0; i<1; i++) {
+                for (int i=0; i<3; i++) {
                     if (EVMeter) {
                         //Charging_Prob[i] = 100 * (abs(Irms_EV[i] - Old_Irms[i])) / ChargeCurrent;    //100% means this phase is charging, 0% mwans not charging
                         Charging_Prob[i] = 10 * (abs(Irms_EV[i] - Old_Irms[i])) / MinCurrent;    //100% means this phase is charging, 0% mwans not charging
@@ -2333,8 +2331,15 @@ void Timer1S(void * parameter) {
                 _LOG_D("Detected Charging Phases: ChargeCurrent=%u, Balanced[0]=%u, IsetBalanced=%u.\n", ChargeCurrent, Balanced[0],IsetBalanced);
                 Nr_Of_Phases_Charging = 0;
 #define THRESHOLD 25
-// LBR only detect charging on L1               for (int i=0; i<3; i++) {
-                for (int i=0; i<1; i++) {
+// LBR only detect charging on L1
+#if FORCE_L1_DETECTION
+                Nr_Of_Phases_Charging=1;
+                Charging_Phase[0] = true;
+                Charging_Phase[1] = false;
+                Charging_Phase[2] = false;
+                _LOG_D("LBR Force 1 phase charging on L1\n");
+#else
+                for (int i=0; i<3; i++) {
                     Charging_Phase[i] = false;
                     if (Charging_Prob[i] == Max_Charging_Prob) {
                         _LOG_D("Suspect I am charging at phase: L%i.\n", i+1);
@@ -2349,6 +2354,7 @@ void Timer1S(void * parameter) {
                         }
                     }
                 }
+#endif
 
                 // sanity checks
                 if (EnableC2 != AUTO) {
