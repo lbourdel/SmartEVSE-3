@@ -1240,6 +1240,11 @@ void DisconnectEvent(void){
 // handles URI, returns true if handled, false if not
 bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerRequest* request) {
     static bool LCDPasswordOK = false;
+// LBR
+    //  curl  -X POST -d '' http://192.168.1.102/settings?mode=0
+    // set Smart each night
+    //  curl -X POST 'http://192.168.1.102/settings?mode=3&starttime=2025-08-29T22:00&stoptime=2025-08-30T06:00&repeat=1' -d ''
+    //    if (mg_match(hm->uri, mg_str("/settings"), NULL)) {               // REST API call?
 //    if (mg_match(hm->uri, mg_str("/settings"), NULL)) {               // REST API call?
     if (mg_http_match_uri(hm, "/settings")) {                            // REST API call?
       if (!memcmp("GET", hm->method.buf, hm->method.len)) {                     // if GET
@@ -1418,13 +1423,18 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
         if (MainsMeter.Type == EM_HOMEWIZARD_P1) {
             doc["mains_meter"]["host"] = !homeWizardHost.isEmpty() ? homeWizardHost : "HomeWizard P1 Not Found";
         }
-          
-        doc["phase_currents"]["TOTAL"] = MainsMeter.Irms[0] + MainsMeter.Irms[1] + MainsMeter.Irms[2];
-        doc["phase_currents"]["L1"] = MainsMeter.Irms[0];
+
+// LBR only L1 to sum (others are not L2/L3)
+        doc["phase_currents"]["TOTAL"] = MainsMeter.Irms[0] ;
+        // doc["phase_currents"]["TOTAL"] = MainsMeter.Irms[0] + MainsMeter.Irms[1] + MainsMeter.Irms[2];
+        doc["phase_currents"]["L1"] = MainsMeter.Irms[0] - MainsMeter.Irms[1] - MainsMeter.Irms[2];
+        // doc["phase_currents"]["L1"] = MainsMeter.Irms[0];
+// end LBR
         doc["phase_currents"]["L2"] = MainsMeter.Irms[1];
         doc["phase_currents"]["L3"] = MainsMeter.Irms[2];
         doc["phase_currents"]["last_data_update"] = phasesLastUpdate;
-        doc["phase_currents"]["original_data"]["TOTAL"] = IrmsOriginal[0] + IrmsOriginal[1] + IrmsOriginal[2];
+        doc["phase_currents"]["original_data"]["TOTAL"] = IrmsOriginal[0] ;
+//        doc["phase_currents"]["original_data"]["TOTAL"] = IrmsOriginal[0] + IrmsOriginal[1] + IrmsOriginal[2];
         doc["phase_currents"]["original_data"]["L1"] = IrmsOriginal[0];
         doc["phase_currents"]["original_data"]["L2"] = IrmsOriginal[1];
         doc["phase_currents"]["original_data"]["L3"] = IrmsOriginal[2];
@@ -1515,11 +1525,12 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
                     //parse OK
                     if (DelayedStartTime.diff > 0)
                         setAccess(OFF);                         //switch to OFF, we are Delayed Charging
-                    else {//we are in the past so no delayed charging
-                        DelayedStartTime.epoch2 = DELAYEDSTARTTIME;
-                        DelayedStopTime.epoch2 = DELAYEDSTOPTIME;
-                        DelayedRepeat = 0;
-                    }
+                    // LBR
+                    //     else {//we are in the past so no delayed charging
+                    //     DelayedStartTime.epoch2 = DELAYEDSTARTTIME;
+                    //     DelayedStopTime.epoch2 = DELAYEDSTOPTIME;
+                    //     DelayedRepeat = 0;
+                    // }
                 }
                 else {
                     //we couldn't parse the string, so we are NOT Delayed Charging
@@ -1536,16 +1547,19 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
                         //string time_str = "2023-04-14T11:31";
                         if (!StoreTimeString(DelayedStopTimeStr, &DelayedStopTime)) {
                             //parse OK
-                            if (DelayedStopTime.diff <= 0 || DelayedStopTime.epoch2 <= DelayedStartTime.epoch2)
-                                //we are in the past or DelayedStopTime before DelayedStartTime so no DelayedStopTime
-                                DelayedStopTime.epoch2 = DELAYEDSTOPTIME;
+                            // LBR
+                            // if (DelayedStopTime.diff <= 0 || DelayedStopTime.epoch2 <= DelayedStartTime.epoch2)
+                            //     //we are in the past or DelayedStopTime before DelayedStartTime so no DelayedStopTime
+                            //     DelayedStopTime.epoch2 = DELAYEDSTOPTIME;
                         }
                         else
                             //we couldn't parse the string, so no DelayedStopTime
                             DelayedStopTime.epoch2 = DELAYEDSTOPTIME;
                         doc["stoptime"] = (DelayedStopTime.epoch2 ? DelayedStopTime.epoch2 + EPOCH2_OFFSET : 0);
                         if(request->hasParam("repeat")) {
-                            int Repeat = request->getParam("repeat")->value().toInt();
+// LBR
+                            // int Repeat = request->getParam("repeat")->value().toInt();
+                            int Repeat = 1;
                             if (Repeat >= 0 && Repeat <= 1) {                                   //boundary check
                                 DelayedRepeat = Repeat;
                                 doc["repeat"] = Repeat;
@@ -1920,7 +1934,9 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
 #endif
                 for (int x = 0; x < 3; x++)
                     doc["ev_meter"]["currents"]["L" + x] = EVMeter.Irms[x];
-                doc["ev_meter"]["currents"]["TOTAL"] = EVMeter.Irms[0] + EVMeter.Irms[1] + EVMeter.Irms[2];
+        // LBR only L1 to sum (others are not L2/L3)
+                // doc["ev_meter"]["currents"]["TOTAL"] = EVMeter.Irms[0] + EVMeter.Irms[1] + EVMeter.Irms[2];
+                doc["ev_meter"]["currents"]["TOTAL"] = EVMeter.Irms[0] ;
             }
 
             if(request->hasParam("import_active_energy") && request->hasParam("export_active_energy") && request->hasParam("import_active_power")) {

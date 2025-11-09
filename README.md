@@ -1,3 +1,16 @@
+NOTES LBR
+=========
+fork from https://github.com/SmartEVSE/SmartEVSE-3.git
+
+* upstream (original repo)
+
+git rebase upstream/main
+
+* origin (my repo)
+
+git push origin dev_laurent
+
+
 SmartEVSE v3
 =========
 

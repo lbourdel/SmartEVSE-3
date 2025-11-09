@@ -73,21 +73,26 @@
 #define MODEM 0  //0 = no modem 1 = modem
 #endif
 
-#define RCM_TEST_DURATION 15                                                    // nr of seconds the RCM Test is allowed (v4 only)
-#define MAX_MAINS 25                                                            // max Current the Mains connection can supply
+#define RCM_TEST_DURATION 15
+// LBR                                                    // nr of seconds the RCM Test is allowed (v4 only)
+// #define MAX_MAINS 25
+#define MAX_MAINS 32                                                             // max Current the Mains connection can supply
 #define MAX_SUMMAINS 0                                                          // only used for capacity rate limiting, max current over the sum of all phases
 #define MAX_SUMMAINSTIME 0
 #define GRID_RELAY_MAX_SUMMAINS 18                                              // only used for rate limiting by grid switched relay,
                                                                                 // max current over the sum of all phases
                                                                                 // 6A * 3 phases * 230V = 4140W, law says 4.2kW ...
-#define MAX_CURRENT 13                                                          // max charging Current for the EV
+// LBR #define MAX_CURRENT 13                                                          // max charging Current for the EV
+#define MAX_CURRENT 33                                                         // max charging Current for the EV
 #ifndef MIN_CURRENT
 #define MIN_CURRENT 6                                                           // minimum Current the EV will accept
 #endif
-#define MODE 0                                                                  // Normal EVSE mode
+#define MODE MODE_SOLAR                                                                 // Normal EVSE mode
 #define LOCK 0                                                                  // No Cable lock
-#define MAX_CIRCUIT 16                                                          // Max current of the EVSE circuit breaker
-#define CONFIG 0                                                                // Configuration: 0= TYPE 2 socket, 1= Fixed Cable
+// LBR #define MAX_CIRCUIT 16                                                          // Max current of the EVSE circuit breaker
+#define MAX_CIRCUIT 34                                                          // Max current of the EVSE circuit breaker
+// LBR #define CONFIG 0                                                                // Configuration: 0= TYPE 2 socket, 1= Fixed Cable
+#define CONFIG 1                                                                // Configuration: 0= TYPE 2 socket, 1= Fixed Cable
 #define LOADBL 0                                                                // Load Balancing disabled
 #define SWITCH 0                                                                // 0= Charge on plugin, 1= (Push)Button on IO2 is used to Start/Stop charging.
 #define RC_MON 0                                                                // Residual Current Monitoring on IO3. Disabled=0, RCM14=1

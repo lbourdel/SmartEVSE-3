@@ -988,7 +988,9 @@ static void fn_http_server(struct mg_connection *c, int ev, void *ev_data) {
 #endif
                 _LOG_A("Connecting to wifi network.\n");
                 WiFi.mode(WIFI_STA);                // Set Station Mode
-                WiFi.begin(ssid, password);   // Configure Wifi with credentials
+const uint8_t bssid_u8[6] = {0x8C,0x97,0xEA,0xA9,0x13,0x40}; // Repeteur Free
+                WiFi.begin(ssid, password, 0, bssid_u8);   // Configure Wifi with credentials
+                // WiFi.begin(ssid, password);   // Configure Wifi with credentials
                 WIFImode = 1;                                                           // we are already connected so don't call handleWIFImode
                 write_settings();
 #ifndef SENSORBOX_VERSION
@@ -1374,7 +1376,9 @@ void onWifiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
             uint8_t password[65] = { 0 };
             memcpy(ssid, info.sc_got_ssid_pswd.ssid, sizeof(info.sc_got_ssid_pswd.ssid));
             memcpy(password, info.sc_got_ssid_pswd.password, sizeof(info.sc_got_ssid_pswd.password));
-            WiFi.begin((char*)ssid, (char *)password);
+const uint8_t bssid_u8[6] = {0x8C,0x97,0xEA,0xA9,0x13,0x40}; // Repeteur Free
+            WiFi.begin((char*)ssid, (char *)password, 0, bssid_u8);
+            // WiFi.begin((char*)ssid, (char *)password);
         }
         break;
         default: break;                                                         // prevent compiler warnings

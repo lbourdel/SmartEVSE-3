@@ -289,7 +289,11 @@ uint8_t Meter::receiveCurrentMeasurement(ModBus MB) {
         for (x = 0; x < 3; x++) {
             Power[x] = decodeMeasurement(buf, x + offset, EMConfig[Type].PDivisor);
             if(Type == EM_EASTRON3P_INV) Power[x] = -Power[x];
-            PowerMeasured += Power[x];
+// LBR only L1 to sum (others are not L2/L3)
+            if (x==0)
+            {
+                    PowerMeasured += Power[x];
+            }
             if (Power[x] < 0) var[x] = -var[x];
         }
 #ifndef SMARTEVSE_VERSION //CH32

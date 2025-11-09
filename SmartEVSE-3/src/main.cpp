@@ -635,7 +635,10 @@ void setSolarStopTimer(uint16_t Timer) {
  * This is only relevant on a 3P mains and 3P car installation!
  * 1P car will always charge 1P undetermined by CONTACTOR2
  */
-uint8_t Force_Single_Phase_Charging() {                                         // abbreviated to FSPC
+uint8_t Force_Single_Phase_Charging() {  
+// LBR always 1P
+    return 1;   //1P charging
+                                       // abbreviated to FSPC
     switch (EnableC2) {
         case NOT_PRESENT:                                                       //no use trying to switch a contactor on that is not present
             return 0;   //3P charging
@@ -3589,7 +3592,11 @@ void CalcIsum(void) {
                 //MainsMeter.Irms[0] -= getBatteryCurrent(); //for some strange reason this would f*ck up the CH32 ?!?!
             }
         }
-        Isum = Isum + MainsMeter.Irms[x];
+// LBR only L1 to sum (others are not L2/L3)
+        if (x==0)
+        {
+            Isum = Isum + MainsMeter.Irms[x];
+        }
     }
     MainsMeter.CalcImeasured();
 }

@@ -699,7 +699,11 @@ void HandleModbusRequest(void) {
                         Isum = 0;
                         for (int i=0; i<3; i++ ) {
                             int16_t combined = (MB.Data[(i * 2) + 16] <<8) + MB.Data[(i * 2) + 17]; 
-                            Isum = Isum + combined;
+        // LBR only L1 to sum (others are not L2/L3)
+                            if (i==0)
+                            {
+                                Isum = Isum + combined;
+                            }
                             MainsMeter.Irms[i] = combined;
                             _LOG_V_NO_FUNC("L%d=%.1fA,", i+1, (float)MainsMeter.Irms[i]/10);
                         }
